@@ -1,0 +1,50 @@
+{
+	"manifest_version": 3,
+	"name": "NBC Board-Import: Taskcards & Edumaps",
+	"version": "0.1.0",
+	"description": "Importiert öffentliche Taskcards- und Edumaps-Boards direkt als Bereich in einen Raum der Niedersächsischen Bildungscloud -- ohne Server, ohne Zugangsdaten, im Konto der angemeldeten Person.",
+	"minimum_chrome_version": "111",
+	"icons": {
+		"16": "icons/icon16.png",
+		"48": "icons/icon48.png",
+		"128": "icons/icon128.png"
+	},
+	"action": {
+		"default_popup": "popup.html",
+		"default_title": "NBC Board-Import: Taskcards & Edumaps"
+	},
+	"permissions": [
+		"scripting"
+	],
+	"host_permissions": [
+		"https://niedersachsen.cloud/*",
+		"https://*.taskcards.de/*",
+		"https://*.taskcards.app/*",
+		"https://*.edumaps.de/*",
+		"https://taskcards.s3.hidrive.strato.com/*",
+		"https://*.padletusercontent.com/*",
+		"https://padlet-uploads.storage.googleapis.com/*"
+	],
+	"background": {
+		"service_worker": "background.js"
+	},
+	"content_scripts": [
+		{
+			"matches": ["https://niedersachsen.cloud/*"],
+			"run_at": "document_end",
+			"js": [
+				"lib/vendor/purify.min.js",
+				"lib/vendor/qrcode-core.js",
+				"lib/vendor/qrcode-utf8.js",
+				"lib/colors.js",
+				"lib/sanitize.js",
+				"lib/qr.js",
+				"lib/edumaps-parser.js",
+				"lib/taskcards.js",
+				"lib/nbc-api.js",
+				"lib/exporter.js",
+				"content-nbc.js"
+			]
+		}
+	]
+}

@@ -1,0 +1,12 @@
+{
+	"name": "nbc-board-import",
+	"private": true,
+	"version": "0.1.0",
+	"description": "Chrome-Erweiterung: Taskcards-/Edumaps-Board-Import in die Niedersaechsische Bildungscloud",
+	"scripts": {
+		"test": "node --test"
+	},
+	"devDependencies": {
+		"jsdom": "^24.0.0"
+	}
+}
