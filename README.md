@@ -76,9 +76,19 @@ CORS-Regeln der Zielseite gebunden).
 
 **Datei-Uploads** bevorzugen `POST /file/upload-from-url/...` -- die NBC
 zieht die Datei dann selbst, kein Download in den Browser nötig. Nur wenn
-das fehlschlägt (oder die Datei ein im Browser gerendertes Inline-Bild ist,
-z.B. ein QR-Code), lädt der Service Worker die Bytes selbst und die
-Erweiterung lädt sie per Multipart hoch.
+das fehlschlägt (kommt vor -- die NBC validiert dabei den von der Quelle
+gelieferten `Content-Type` gegen die Dateiendung und lehnt manche
+Taskcards-Anhänge mit `422 MIME_TYPE_MISMATCH` ab) oder die Datei ein im
+Browser gerendertes Inline-Bild ist (z.B. ein QR-Code), lädt der Service
+Worker die Bytes selbst und die Erweiterung lädt sie per Multipart hoch.
+
+Die Bytes wandern dabei als Base64-String durch `chrome.runtime.sendMessage`
+(`background.js` → `lib/exporter.js`): die Erweiterungs-Messaging-API
+serialisiert NICHT per structured clone, ein rohes `ArrayBuffer` kommt beim
+Empfänger als leeres Objekt an -- ohne Fehler, nur mit still verfälschten
+Bytes (so gefunden: eine hochgeladene PDF, die sich nicht öffnen liess).
+Der ~33-%-Overhead von Base64 ist hier keine vermeidbare Altlast, sondern
+der Preis für einen Transport, der tatsächlich ankommt.
 
 ### Dateien
 

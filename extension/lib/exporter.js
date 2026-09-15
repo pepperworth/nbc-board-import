@@ -17,6 +17,16 @@
 		return chrome.runtime.sendMessage({ type: 'nbcImport:fetchResource', url, as, credentials });
 	}
 
+	// background.js liefert Binärdaten als Base64-String zurück (siehe
+	// Kommentar dort bei arrayBufferToBase64) -- chrome.runtime.sendMessage
+	// verfälscht ein rohes ArrayBuffer sonst stillschweigend zu {}.
+	function base64ToBytes(base64) {
+		const binary = atob(base64);
+		const bytes = new Uint8Array(binary.length);
+		for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+		return bytes;
+	}
+
 	function nbcTitle(value, fallback) {
 		let title = String(value || '').split(/\s+/).filter(Boolean).join(' ');
 		if (!title && fallback) title = String(fallback).split(/\s+/).filter(Boolean).join(' ');
@@ -161,7 +171,7 @@
 					logger.info(`  upload-from-url für "${el.fileName}" fehlgeschlagen (${fromUrlError.message}), lade die Datei stattdessen selbst...`);
 					const fetched = await fetchResourceViaBackground(el._originalUrl, 'bytes', 'omit');
 					if (!fetched || !fetched.ok) throw new Error((fetched && fetched.error) || 'Download fehlgeschlagen');
-					blob = new Blob([fetched.bytes], { type: el.mimeType || fetched.contentType || 'application/octet-stream' });
+					blob = new Blob([base64ToBytes(fetched.bytesBase64)], { type: el.mimeType || fetched.contentType || 'application/octet-stream' });
 				}
 			} else {
 				throw new Error('Kein Dateiinhalt vorhanden.');

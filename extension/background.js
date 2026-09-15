@@ -82,20 +82,37 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
 /**
  * Holt eine Ressource cross-origin. `as` steuert das Rückgabeformat:
- * "text" (HTML/JSON-Strings), "bytes" (ArrayBuffer, für Datei-Downloads).
- * `credentials: "include"` schickt die Cookies der Zielseite mit -- nötig
- * für nicht-öffentliche Boards, die Login voraussetzen.
+ * "text" (HTML/JSON-Strings), "bytes" (Datei-Downloads, als Base64-String
+ * -- siehe Kommentar bei `arrayBufferToBase64`). `credentials: "include"`
+ * schickt die Cookies der Zielseite mit -- nötig für nicht-öffentliche
+ * Boards, die Login voraussetzen.
  */
 async function fetchResource(url, as, credentials) {
 	const response = await fetch(url, { credentials, redirect: 'follow' });
 	const contentType = response.headers.get('content-type') || '';
 	const finalUrl = response.url || url;
 	if (as === 'bytes') {
-		const bytes = await response.arrayBuffer();
-		return { status: response.status, contentType, finalUrl, bytes };
+		const buffer = await response.arrayBuffer();
+		return { status: response.status, contentType, finalUrl, bytesBase64: arrayBufferToBase64(buffer) };
 	}
 	const text = await response.text();
 	return { status: response.status, contentType, finalUrl, text };
+}
+
+// chrome.runtime.sendMessage/onMessage serialisieren die Nachricht NICHT per
+// structured clone, sondern JSON-artig -- ein ArrayBuffer kommt auf der
+// Empfängerseite als leeres Objekt an, keine Fehlermeldung, nur stille
+// Datenverfälschung (bemerkt an einer hochgeladenen Datei, die sich nicht
+// öffnen liess). Base64-Strings sind JSON-sicher und tragen die Bytes
+// unverändert über die Grenze -- der ~33%-Overhead ist der Preis dafür.
+function arrayBufferToBase64(buffer) {
+	const bytes = new Uint8Array(buffer);
+	const chunkSize = 0x8000;
+	let binary = '';
+	for (let i = 0; i < bytes.length; i += chunkSize) {
+		binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+	}
+	return btoa(binary);
 }
 
 async function taskcardsFetchBoard(boardId, token, baseUrl) {
