@@ -6,8 +6,21 @@
 (function () {
 	'use strict';
 
-	if (window.__nbcBoardImportLoaded) return;
-	window.__nbcBoardImportLoaded = true;
+	// background.js reicht dieses Script nach einem Extension-Reload/-Update
+	// in schon offene NBC-Tabs nach (chrome.runtime.onInstalled), damit man
+	// nicht jedes Mal F5 drücken muss. Eine bereits laufende ALTE Instanz
+	// in genau diesem Tab hat dann aber ein totes `chrome.runtime` --
+	// die Extension-Seite dahinter existiert nicht mehr ("Cannot read
+	// properties of undefined (reading 'sendMessage')"). Ein simples
+	// "schon geladen, dann nichts tun"-Flag würde die neue, funktionierende
+	// Instanz aussperren und den Tab dauerhaft an der toten hängen lassen
+	// -- deshalb hier stattdessen: alte UI/Poller wegräumen und neu
+	// aufsetzen, statt früh auszusteigen.
+	const existingOverlay = document.getElementById('nbcimp-overlay');
+	if (existingOverlay) existingOverlay.remove();
+	const existingButton = document.getElementById('nbcimp-btn');
+	if (existingButton) existingButton.remove();
+	if (window.__nbcBoardImportInterval) clearInterval(window.__nbcBoardImportInterval);
 
 	const CSS = `
 	#nbcimp-btn { position: fixed; bottom: 24px; right: 24px; z-index: 9998; padding: 8px 16px;
@@ -227,7 +240,7 @@
 	// zuverlässiger SPA-Router-Hook verfügbar) und hält den Button in Sync,
 	// wenn zwischen Räumen gewechselt wird.
 	let lastHref = location.href;
-	setInterval(() => {
+	window.__nbcBoardImportInterval = setInterval(() => {
 		if (location.href !== lastHref) {
 			lastHref = location.href;
 			ensureButton();
