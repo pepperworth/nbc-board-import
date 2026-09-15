@@ -210,8 +210,23 @@
 				startBtn.disabled = false;
 				startBtn.onclick = () => { overlay.remove(); location.reload(); };
 			} catch (error) {
-				logger.err(`Import abgebrochen: ${error.message || error}`);
-				statusEl.textContent = 'Import abgebrochen -- siehe Protokoll.';
+				// Bricht der Import mittendrin ab, sind die Spalten/Karten/
+				// Dateien bis zu diesem Punkt trotzdem schon im Raum angelegt
+				// -- exportBoard() arbeitet die Struktur sequentiell ab und
+				// jeder API-Aufruf, der im Protokoll oben als "✓" steht, ist
+				// bereits passiert. "Abgebrochen" klingt nach "nichts
+				// passiert" und ist damit irreführend; die Meldung schickt
+				// deshalb erst zur Kontrolle in den Raum, statt reflexhaft
+				// zu einem Neuladen zu raten.
+				const message = (error && error.message) || String(error);
+				const staleExtension = /Extension context invalidated|reading 'sendMessage'|receiving end does not exist/i.test(message);
+				logger.err(`Import angehalten: ${message}`);
+				if (staleExtension) {
+					logger.warn('Das deutet auf einen Extension-Reload während des Imports hin -- nicht auf einen Fehler in den Daten.');
+				}
+				statusEl.textContent = staleExtension
+					? 'Import angehalten (vermutlich Extension währenddessen neu geladen) -- im Raum kontrollieren, was schon da ist, und nur bei Bedarf die Seite neu laden.'
+					: 'Import angehalten -- im Raum kontrollieren, was bis hierhin angelegt wurde (siehe Protokoll oben), bevor du es erneut versuchst.';
 				startBtn.disabled = false;
 				urlInput.disabled = false;
 			}
