@@ -32,6 +32,36 @@ test('parseDocument baut zwei Spalten aus path-column mit path-item-Titeln', () 
 	assert.equal(columns[1].title, 'Spalte Zwei');
 });
 
+// Regression: der Spalten-Header (.path-item h2.pathhead) enthaelt neben
+// dem Titel (span.pathlabel) einen Karten-Anzahl-Badge
+// (span.pathboxcount-badge). Reines .textContent haengt beide zusammen --
+// aus "Spalte Eins" + Badge "2" wurde faelschlich "Spalte Eins2". Die
+// Fixture bildet dieses reale Markup nach (siehe fixtures/pinboard.html);
+// dieser Test macht die Erwartung explizit und benennt den Bug.
+test('Spaltentitel enthaelt NICHT den Karten-Anzahl-Badge aus dem Header', () => {
+	const { columns } = parseFixture();
+	assert.equal(columns[0].title, 'Spalte Eins');
+	assert.ok(!columns[0].title.includes('2'), `Titel "${columns[0].title}" enthaelt den Badge-Text`);
+});
+
+test('Spaltentitel-Fallback: ohne span.pathlabel wird der Badge-Text trotzdem entfernt', () => {
+	const doc = new DOMParser().parseFromString(`<!doctype html><body>
+		<h1>Fallback-Board</h1>
+		<div class="map-content-wrap">
+			<div class="path-column">
+				<div class="path-item"><h2 class="pathhead">Nur Titel<span class="pathboxcount-badge">4</span></h2></div>
+				<div class="box-item"><h3 class="boxlabel">Karte</h3></div>
+			</div>
+			<div class="path-column">
+				<div class="path-item"><h2 class="pathhead">Zweite<span class="pathboxcount-badge">1</span></h2></div>
+				<div class="box-item"><h3 class="boxlabel">Karte 2</h3></div>
+			</div>
+		</div>
+	</body>`, 'text/html');
+	const { columns } = parseDocument(doc, '/board/pinboard');
+	assert.equal(columns[0].title, 'Nur Titel');
+});
+
 test('parseBox liest den Kartentitel aus h3.boxlabel', () => {
 	const { columns } = parseFixture();
 	assert.equal(columns[0].cards[0].title, 'Karte Eins');

@@ -423,6 +423,23 @@ function dedupeFirstCardTitle(cards, sourceWasFirstLabel) {
   return cards;
 }
 
+// Der Spalten-Header (.path-item h2.pathhead) enthaelt neben dem
+// eigentlichen Titel (span.pathlabel) einen Badge mit der Kartenzahl
+// (span.pathboxcount-badge, z.B. "3" fuer "3 Boxen in dieser Spalte").
+// Reines .textContent auf .path-item haengt beides zusammen -- aus
+// "Einführung" + Badge "3" wird "Einführung3". Karten-Titel (h3.boxlabel)
+// haben dieses Problem nicht, nur der Spalten-Header.
+function pathColumnTitle(pathItemEl) {
+  if (!pathItemEl) return '';
+  const label = pathItemEl.querySelector('.pathlabel');
+  if (label) return label.textContent.trim();
+  // Fallback fuer den Fall, dass .pathlabel mal fehlt, der Badge aber da
+  // ist: Badge-Text vor dem Lesen entfernen statt ihn zu riskieren.
+  const clone = pathItemEl.cloneNode(true);
+  clone.querySelectorAll('.pathboxcount-badge').forEach((el) => el.remove());
+  return clone.textContent.trim();
+}
+
 function parsePinboard(document, usedNames) {
   const boardTitle = getBoardTitle(document);
   const pathCols = document.querySelectorAll('.map-content-wrap .path-column');
@@ -430,7 +447,7 @@ function parsePinboard(document, usedNames) {
     const columns = [];
     pathCols.forEach((pathCol, idx) => {
       const pathItem = pathCol.querySelector('.path-item');
-      const pathItemText = pathItem && pathItem.textContent ? pathItem.textContent.trim() : '';
+      const pathItemText = pathColumnTitle(pathItem);
       const firstLabel = pathCol.querySelector('h3.boxlabel');
       const firstLabelText = firstLabel ? firstLabel.textContent.trim() : '';
       const colTitle = pathItemText || firstLabelText || 'Spalte ' + (idx + 1);
@@ -451,7 +468,7 @@ function parseTimeline(document, usedNames) {
   const columns = [];
   pathCols.forEach((pathCol, idx) => {
     const pathWrap = pathCol.querySelector('.path-wrap .path-item');
-    const pathItemText = pathWrap ? pathWrap.textContent.trim() : '';
+    const pathItemText = pathColumnTitle(pathWrap);
     const firstLabel = pathCol.querySelector('h3.boxlabel');
     const firstLabelText = firstLabel ? firstLabel.textContent.trim() : '';
     const colTitle = pathItemText || firstLabelText || 'Woche ' + (idx + 1);
@@ -470,7 +487,7 @@ function parseStickerwall(document, usedNames) {
     const columns = [];
     pathCols.forEach((pathCol, idx) => {
       const pathItem = pathCol.querySelector('.path-item');
-      const pathItemText = pathItem && pathItem.textContent ? pathItem.textContent.trim() : '';
+      const pathItemText = pathColumnTitle(pathItem);
       const firstLabel = pathCol.querySelector('h3.boxlabel');
       const firstLabelText = firstLabel ? firstLabel.textContent.trim() : '';
       const colTitle = pathItemText || firstLabelText || 'Gruppe ' + (idx + 1);
